@@ -1,0 +1,9 @@
+.SubAreaContainer {
+  padding: 20px 10px;
+}
+
+.SubAreaHeader {
+  margin-bottom: 15px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #eee;
+}

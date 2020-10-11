@@ -1,0 +1,13 @@
+.InputContainer {
+  margin-right: 10px;
+}
+
+.InputSubmitBtn {
+  height: 38px;
+}
+
+@media (max-width: 767.98px) {
+  .InputContainer {
+    margin-right: 7px;
+  }
+}

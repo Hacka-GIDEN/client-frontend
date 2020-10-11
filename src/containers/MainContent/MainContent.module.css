@@ -1,0 +1,30 @@
+.Container {
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0px 0px 10px;
+}
+
+.Header {
+  background-color: #1d3557;
+  color: rgb(221, 174, 68);
+  text-align: center;
+  padding: 7px 0;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.HeaderLogo {
+  margin: 0;
+  font-weight: 800;
+}
+
+.HeaderPic {
+  height: 34px;
+  margin-right: 10px;
+  border-radius: 50%;
+}
+
+.MainContentArea {
+  height: calc(100vh - 145px);
+}

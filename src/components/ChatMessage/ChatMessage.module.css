@@ -1,0 +1,46 @@
+.Message {
+  background-color: #a8dadc;
+  color: #333;
+  width: 70%;
+  padding: 15px;
+  border-radius: 0 15px 15px 15px;
+  margin-bottom: 7px;
+}
+
+.MessageContent {
+  font-size: 0.9rem;
+}
+
+.MessageUser {
+  background-color: #e63946;
+  color: #eee;
+  align-self: flex-end;
+  text-align: right;
+  border-radius: 15px 0 15px 15px;
+}
+
+.MessageDifferentSender {
+  margin-top: 20px;
+}
+
+.LastMessage {
+  margin-bottom: 0;
+}
+
+.MessageButton {
+  background-color: #1d3557;
+  color: #eee;
+  border-radius: 15px 15px 15px 15px;
+  border: none;
+  font-style: italic;
+}
+
+.MessageButton:hover {
+  background-color: #457b9d;
+}
+
+@media (max-width: 767.98px) {
+  .Message {
+    width: 90%;
+  }
+}

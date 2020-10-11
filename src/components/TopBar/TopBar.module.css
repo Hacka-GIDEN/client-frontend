@@ -1,0 +1,17 @@
+.TopBar {
+  background-color: #1d3557;
+  color: #ddae43;
+  margin: 12px 0;
+  padding: 4px 0;
+}
+
+.TopBarLogo {
+  margin: 4px 0;
+  font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+  .TopBar {
+    padding-left: 10px;
+  }
+}
