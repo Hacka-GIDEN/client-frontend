@@ -5,6 +5,7 @@ import fetchJsonp from "fetch-jsonp";
 import BounceLoader from "react-spinners/BounceLoader";
 import ChatInput from "../ChatInput/ChatInput";
 import ChatMessage from "../ChatMessage/ChatMessage";
+import CoursesModal from "../CoursesModal/CoursesModal";
 import {
   global as appActions,
   messages as msgActions,
@@ -15,6 +16,7 @@ import styles from "./BotArea.module.css";
 
 const BotArea = (props) => {
   const [shouldFetchCnpj, setShouldFetchCnpj] = useState(false);
+  const [showCoursesModal, setShowCoursesModal] = useState(false);
 
   const appState = useSelector((state) => state.global);
   const { messages, user } = useSelector((state) => state);
@@ -32,18 +34,14 @@ const BotArea = (props) => {
 
   const fetchCnpj = () => {
     if (!shouldFetchCnpj) return;
+    dispatch(appActions.setChatStage(chatStages.WAITING_FOR_CNPJ_FETCHING));
     fetchJsonp(`https://www.receitaws.com.br/v1/cnpj/${user.cnpjRaw}`)
       .then((res) => res.json())
       .then((data) => {
         setShouldFetchCnpj(false);
         dispatch(userActions.addUserFields({ company: { ...data } }));
         dispatch(msgActions.removeMessage(messages.length - 1));
-        sendMessageAsBot(
-          <div>
-            Prontinho, {user.firstName}! Sua empresa é a{" "}
-            <strong>{data.nome}</strong>, certo?
-          </div>
-        );
+        dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
       });
   };
 
@@ -108,7 +106,60 @@ const BotArea = (props) => {
             `Certo, ${user.firstName}, sem problemas! Sem CNPJ.`,
             () =>
               sendMessageAsBot(
-                "Deixe-me então agora te fazer algumas perguntinhas sobre o seu negócio... Posso?"
+                "Mas... responda-me: de que tipo é a sua empresa?",
+                () =>
+                  sendMessageAsBot(
+                    "Comércio",
+                    () =>
+                      sendMessageAsBot(
+                        "Serviços",
+                        () =>
+                          sendMessageAsBot(
+                            "Comércio e serviços",
+                            () =>
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BUSINESS_TYPE
+                                )
+                              ),
+                            {
+                              asButton: true,
+                              buttonCallback: () => {
+                                dispatch(
+                                  msgActions.appendUserMessage(
+                                    "Comércio e serviços."
+                                  )
+                                );
+                                dispatch(
+                                  appActions.setChatStage(
+                                    chatStages.WAITING_FOR_BOT
+                                  )
+                                );
+                              },
+                            }
+                          ),
+                        {
+                          asButton: true,
+                          buttonCallback: () => {
+                            dispatch(msgActions.appendUserMessage("Serviços."));
+                            dispatch(
+                              appActions.setChatStage(
+                                chatStages.WAITING_FOR_BOT
+                              )
+                            );
+                          },
+                        }
+                      ),
+                    {
+                      asButton: true,
+                      buttonCallback: () => {
+                        dispatch(msgActions.appendUserMessage("Comércio."));
+                        dispatch(
+                          appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                        );
+                      },
+                    }
+                  )
               )
           );
         } else {
@@ -128,6 +179,588 @@ const BotArea = (props) => {
               )
           );
         }
+        break;
+      case chatStages.WAITING_FOR_CNPJ_FETCHING:
+        sendMessageAsBot(
+          <div>
+            Prontinho, {user.firstName}! Sua empresa é a{" "}
+            <strong>{user.company.nome}</strong>, certo?
+          </div>,
+          () => {
+            dispatch(
+              appActions.setChatStage(chatStages.WAITING_FOR_QUESTIONS_START)
+            );
+            dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+          }
+        );
+        break;
+      case chatStages.WAITING_FOR_BUSINESS_TYPE:
+      case chatStages.WAITING_FOR_QUESTIONS_START:
+        sendMessageAsBot(
+          "Vamos começar agora com algumas perguntinhas sobre você e a sua empresa. Blz?",
+          () =>
+            sendMessageAsBot(
+              "(1/7) De alguma maneira você acha que adversidades econômicas, políticas e tecnológicas impactam nas operações de sua empresa?",
+              () =>
+                sendMessageAsBot(
+                  "Sim",
+                  () =>
+                    sendMessageAsBot(
+                      "Não sei",
+                      () =>
+                        sendMessageAsBot(
+                          "Não",
+                          () =>
+                            dispatch(
+                              appActions.setChatStage(
+                                chatStages.WAITING_FOR_ANSWER_1
+                              )
+                            ),
+                          {
+                            asButton: true,
+                            buttonCallback: () => {
+                              dispatch(
+                                msgActions.appendUserMessage(
+                                  "Não, esses tipos de adversidade não impactam nas operações da minha empresa."
+                                )
+                              );
+                              dispatch(userActions.incrementScore(10));
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BOT
+                                )
+                              );
+                            },
+                          }
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(
+                            msgActions.appendUserMessage("Não sei responder...")
+                          );
+                          dispatch(userActions.incrementScore(15));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "Sim, acredito que esses tipos de adversidade têm sim impacto nas operações da minha empresa."
+                        )
+                      );
+                      dispatch(userActions.incrementScore(50));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                )
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_1:
+        sendMessageAsBot(
+          `Ótimo, ${user.firstName}! Vamos para a próxima:`,
+          () =>
+            sendMessageAsBot(
+              "(2/7) Na sua opinião, apenas capital próprio permitirá que os planos de crescimento atuais de sua empresa sejam alcançados?",
+              () =>
+                sendMessageAsBot(
+                  "Sim",
+                  () =>
+                    sendMessageAsBot(
+                      "Não sei",
+                      () =>
+                        sendMessageAsBot(
+                          "Não",
+                          () =>
+                            dispatch(
+                              appActions.setChatStage(
+                                chatStages.WAITING_FOR_ANSWER_2
+                              )
+                            ),
+                          {
+                            asButton: true,
+                            buttonCallback: () => {
+                              dispatch(
+                                msgActions.appendUserMessage(
+                                  "Não, somente capital próprio não ajudará no alcance dos planos de crescimento atuais da minha empresa."
+                                )
+                              );
+                              dispatch(userActions.incrementScore(30));
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BOT
+                                )
+                              );
+                            },
+                          }
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(
+                            msgActions.appendUserMessage("Não sei responder...")
+                          );
+                          dispatch(userActions.incrementScore(10));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "Sim, é possível alcançar as metas de crescimento da minha empresa apenas com capital próprio."
+                        )
+                      );
+                      dispatch(userActions.incrementScore(60));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                )
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_2:
+        sendMessageAsBot(
+          "(3/7) A respeito da saúde financeira de seu negócio, você separa suas contas pessoais do fluxo de caixa no final do mês?",
+          () =>
+            sendMessageAsBot(
+              "Sim",
+              () =>
+                sendMessageAsBot(
+                  "Não",
+                  () =>
+                    dispatch(
+                      appActions.setChatStage(chatStages.WAITING_FOR_ANSWER_3)
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "Não, não separo minhas contas pessoais do fluxo de caixa no final do mês."
+                        )
+                      );
+                      dispatch(userActions.incrementScore(20));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                ),
+              {
+                asButton: true,
+                buttonCallback: () => {
+                  dispatch(
+                    msgActions.appendUserMessage(
+                      "Sim, eu sempre separo minhas contas pessoais do fluxo de caixa no final do mês."
+                    )
+                  );
+                  dispatch(userActions.incrementScore(70));
+                  dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+                },
+              }
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_3:
+        sendMessageAsBot(
+          "(4/7) Sabemos que diferentes produtos são cuidadosamente posicionados em diferentes segmentos de mercado. Você possui táticas desenvolvidas para precificar os seus produtos, distribuí-los, criar promoções e firmar parcerias?",
+          () =>
+            sendMessageAsBot(
+              "Sim",
+              () =>
+                sendMessageAsBot(
+                  "Não sei como fazer isso",
+                  () =>
+                    sendMessageAsBot(
+                      "Não",
+                      () =>
+                        dispatch(
+                          appActions.setChatStage(
+                            chatStages.WAITING_FOR_ANSWER_4
+                          )
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(
+                            msgActions.appendUserMessage(
+                              "Não, ainda não desenvolvi essas táticas."
+                            )
+                          );
+                          dispatch(userActions.incrementScore(35));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "Não sei como fazer isso :("
+                        )
+                      );
+                      dispatch(userActions.incrementScore(10));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                ),
+              {
+                asButton: true,
+                buttonCallback: () => {
+                  dispatch(
+                    msgActions.appendUserMessage(
+                      "Sim, possuo essas táticas bem desenvolvidas!"
+                    )
+                  );
+                  dispatch(userActions.incrementScore(50));
+                  dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+                },
+              }
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_4:
+        sendMessageAsBot(
+          "(5/7) Você vende pela Internet? Se sim, qual das ferramentas abaixo você usa mais?",
+          () =>
+            sendMessageAsBot(
+              "Loja virtual própria",
+              () =>
+                sendMessageAsBot(
+                  "WhatsApp ou WhatsApp Business",
+                  () =>
+                    sendMessageAsBot(
+                      "Facebook",
+                      () =>
+                        sendMessageAsBot(
+                          "Instagram",
+                          () =>
+                            sendMessageAsBot(
+                              "Não vendo pela Internet",
+                              () =>
+                                dispatch(
+                                  appActions.setChatStage(
+                                    chatStages.WAITING_FOR_ANSWER_5
+                                  )
+                                ),
+                              {
+                                asButton: true,
+                                buttonCallback: () => {
+                                  dispatch(
+                                    msgActions.appendUserMessage(
+                                      "Não vendo pela Internet."
+                                    )
+                                  );
+                                  dispatch(userActions.incrementScore(10));
+                                  dispatch(
+                                    appActions.setChatStage(
+                                      chatStages.WAITING_FOR_BOT
+                                    )
+                                  );
+                                },
+                              }
+                            ),
+                          {
+                            asButton: true,
+                            buttonCallback: () => {
+                              dispatch(
+                                msgActions.appendUserMessage("Instagram.")
+                              );
+                              dispatch(userActions.incrementScore(40));
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BOT
+                                )
+                              );
+                            },
+                          }
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(msgActions.appendUserMessage("Facebook."));
+                          dispatch(userActions.incrementScore(40));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "WhatsApp ou WhatsApp Business."
+                        )
+                      );
+                      dispatch(userActions.incrementScore(30));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                ),
+              {
+                asButton: true,
+                buttonCallback: () => {
+                  dispatch(
+                    msgActions.appendUserMessage("Loja virtual própria.")
+                  );
+                  dispatch(userActions.incrementScore(50));
+                  dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+                },
+              }
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_5:
+        sendMessageAsBot(
+          "(6/7) Seus clientes pagam pelos seus produtos/serviços geralmente de que forma?",
+          () =>
+            sendMessageAsBot(
+              "Dinheiro em espécie",
+              () =>
+                sendMessageAsBot(
+                  "Cartões de crédito e débito",
+                  () =>
+                    sendMessageAsBot(
+                      "Transferência bancária",
+                      () =>
+                        sendMessageAsBot(
+                          "Boleto",
+                          () =>
+                            sendMessageAsBot(
+                              "Cheque",
+                              () =>
+                                dispatch(
+                                  appActions.setChatStage(
+                                    chatStages.WAITING_FOR_ANSWER_6
+                                  )
+                                ),
+                              {
+                                asButton: true,
+                                buttonCallback: () => {
+                                  dispatch(
+                                    msgActions.appendUserMessage("Cheque.")
+                                  );
+                                  dispatch(userActions.incrementScore(10));
+                                  dispatch(
+                                    appActions.setChatStage(
+                                      chatStages.WAITING_FOR_BOT
+                                    )
+                                  );
+                                },
+                              }
+                            ),
+                          {
+                            asButton: true,
+                            buttonCallback: () => {
+                              dispatch(msgActions.appendUserMessage("Boleto."));
+                              dispatch(userActions.incrementScore(30));
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BOT
+                                )
+                              );
+                            },
+                          }
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(
+                            msgActions.appendUserMessage("Transferência.")
+                          );
+                          dispatch(userActions.incrementScore(40));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(
+                        msgActions.appendUserMessage(
+                          "Cartões de crédito e débito."
+                        )
+                      );
+                      dispatch(userActions.incrementScore(40));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                ),
+              {
+                asButton: true,
+                buttonCallback: () => {
+                  dispatch(
+                    msgActions.appendUserMessage("Dinheiro em espécie.")
+                  );
+                  dispatch(userActions.incrementScore(15));
+                  dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+                },
+              }
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_6:
+        sendMessageAsBot(
+          "(7/7) Quando sobra aquele dinheirinho do final do mês, você investe em algum produto financeiro? Se sim, em qual você mais aplica?",
+          () =>
+            sendMessageAsBot(
+              "Poupança",
+              () =>
+                sendMessageAsBot(
+                  "CDB",
+                  () =>
+                    sendMessageAsBot(
+                      "Tesouro direto",
+                      () =>
+                        sendMessageAsBot(
+                          "LCI/LCA",
+                          () =>
+                            sendMessageAsBot(
+                              "Ações",
+                              () =>
+                                sendMessageAsBot(
+                                  "Não invisto",
+                                  () =>
+                                    dispatch(
+                                      appActions.setChatStage(
+                                        chatStages.WAITING_FOR_ANSWER_7
+                                      )
+                                    ),
+                                  {
+                                    asButton: true,
+                                    buttonCallback: () => {
+                                      dispatch(
+                                        msgActions.appendUserMessage(
+                                          "Não invisto."
+                                        )
+                                      );
+                                      dispatch(userActions.incrementScore(10));
+                                      dispatch(
+                                        appActions.setChatStage(
+                                          chatStages.WAITING_FOR_BOT
+                                        )
+                                      );
+                                    },
+                                  }
+                                ),
+                              {
+                                asButton: true,
+                                buttonCallback: () => {
+                                  dispatch(
+                                    msgActions.appendUserMessage("Ações.")
+                                  );
+                                  dispatch(userActions.incrementScore(50));
+                                  dispatch(
+                                    appActions.setChatStage(
+                                      chatStages.WAITING_FOR_BOT
+                                    )
+                                  );
+                                },
+                              }
+                            ),
+                          {
+                            asButton: true,
+                            buttonCallback: () => {
+                              dispatch(
+                                msgActions.appendUserMessage("LCI/LCA.")
+                              );
+                              dispatch(userActions.incrementScore(50));
+                              dispatch(
+                                appActions.setChatStage(
+                                  chatStages.WAITING_FOR_BOT
+                                )
+                              );
+                            },
+                          }
+                        ),
+                      {
+                        asButton: true,
+                        buttonCallback: () => {
+                          dispatch(
+                            msgActions.appendUserMessage("Tesouro direto.")
+                          );
+                          dispatch(userActions.incrementScore(50));
+                          dispatch(
+                            appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                          );
+                        },
+                      }
+                    ),
+                  {
+                    asButton: true,
+                    buttonCallback: () => {
+                      dispatch(msgActions.appendUserMessage("CDB."));
+                      dispatch(userActions.incrementScore(50));
+                      dispatch(
+                        appActions.setChatStage(chatStages.WAITING_FOR_BOT)
+                      );
+                    },
+                  }
+                ),
+              {
+                asButton: true,
+                buttonCallback: () => {
+                  dispatch(msgActions.appendUserMessage("Poupança."));
+                  dispatch(userActions.incrementScore(20));
+                  dispatch(appActions.setChatStage(chatStages.WAITING_FOR_BOT));
+                },
+              }
+            )
+        );
+        break;
+      case chatStages.WAITING_FOR_ANSWER_7:
+        sendMessageAsBot(
+          `Maravilha, ${user.firstName}! Já temos o seu perfil traçado!!! Parabéns :)`,
+          () =>
+            sendMessageAsBot(
+              <div>
+                E também já temos pronto uma coletânea de cursos do SEBRAE
+                recomendados exclusivamente para você!
+                <br />
+                <strong>
+                  Quando você concluí-los, é possível que seu score com as
+                  instituições financeiras aumente!
+                </strong>
+              </div>,
+              () =>
+                sendMessageAsBot(
+                  "Clique aqui para ver os cursos recomendados",
+                  null,
+                  {
+                    asButton: true,
+                    buttonCallback: () => setShowCoursesModal(true),
+                  }
+                )
+            )
+        );
         break;
       default:
         return;
@@ -157,6 +790,11 @@ const BotArea = (props) => {
         <div ref={chatBottomRef} />
       </div>
       <ChatInput />
+      <CoursesModal
+        show={showCoursesModal}
+        onHide={() => setShowCoursesModal(false)}
+        user={user}
+      />
     </div>
   );
 };

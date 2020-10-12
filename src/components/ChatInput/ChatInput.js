@@ -90,6 +90,19 @@ const ChatInput = (props) => {
           placeholder: "Digite o CNPJ da sua empresa",
         };
         break;
+      case chatStages.WAITING_FOR_BUSINESS_TYPE:
+      case chatStages.WAITING_FOR_ANSWER_1:
+      case chatStages.WAITING_FOR_ANSWER_2:
+      case chatStages.WAITING_FOR_ANSWER_3:
+      case chatStages.WAITING_FOR_ANSWER_4:
+      case chatStages.WAITING_FOR_ANSWER_5:
+      case chatStages.WAITING_FOR_ANSWER_6:
+      case chatStages.WAITING_FOR_ANSWER_7:
+        newInputConfig = {
+          disabled: true,
+          placeholder: "Selecione uma das opções acima",
+        };
+        break;
       default:
         newInputConfig = {
           disabled: true,

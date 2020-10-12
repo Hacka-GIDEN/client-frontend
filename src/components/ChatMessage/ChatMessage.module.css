@@ -12,8 +12,8 @@
 }
 
 .MessageUser {
-  background-color: #e63946;
-  color: #eee;
+  background-color: #e9ecef;
+  color: #333;
   align-self: flex-end;
   text-align: right;
   border-radius: 15px 0 15px 15px;

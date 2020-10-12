@@ -1,6 +1,7 @@
 import React from "react";
 import UserInfo from "../UserInfo/UserInfo";
 import CompanyInfo from "../CompanyInfo/CompanyInfo";
+import ScoreInfo from "../ScoreInfo/ScoreInfo";
 import styles from "./InfoArea.module.css";
 
 const InfoArea = (props) => {
@@ -8,6 +9,7 @@ const InfoArea = (props) => {
     <div className={styles.InfoArea}>
       <UserInfo />
       <CompanyInfo />
+      <ScoreInfo />
     </div>
   );
 };
