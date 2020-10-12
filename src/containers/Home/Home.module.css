@@ -1,0 +1,44 @@
+.TopBar {
+  background-color: #1d3557;
+  color: #ddae43;
+  padding: 4px 0;
+}
+
+.TopBarLogo {
+  margin: 4px 0;
+  font-weight: 700;
+}
+
+.LinksBar {
+  background-color: #457b9d;
+}
+
+.Page {
+  display: flex;
+  flex-direction: column;
+  height: 110vh;
+}
+
+.Hero {
+  flex-grow: 0.5;
+  background-image: url("https://cdn.pixabay.com/photo/2020/03/18/20/01/frankfurt-4945405_1280.jpg");
+  background-size: cover;
+  background-position: 50% 40%;
+}
+
+.HeroContent {
+  background-color: rgb(0, 0, 0, 0.6);
+  height: 100%;
+  padding: 15px 0;
+}
+
+.Features {
+  flex-grow: 1;
+  background-color: #fff;
+}
+
+@media (max-width: 575.98px) {
+  .TopBar {
+    padding-left: 10px;
+  }
+}
